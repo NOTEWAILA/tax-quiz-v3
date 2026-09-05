@@ -1,248 +1,326 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบคลังข้อสอบออนไลน์</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root { --primary: #4f46e5; --bg: #f3f4f6; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h2 { color: #1e293b; text-align: center; }
-        .hidden { display: none !important; }
-        .btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; }
-        .btn:hover { opacity: 0.9; }
-        .btn-sec { background: #64748b; }
-        input, select { width: 100%; padding: 10px; margin: 8px 0 15px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        .option-btn { display: block; width: 100%; text-align: left; padding: 10px 15px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; cursor: pointer; }
-        .option-btn:hover { background: #e0e7ff; }
-        .user-bar { display: flex; justify-content: space-between; align-items: center; background: #e2e8f0; padding: 10px 15px; border-radius: 6px; margin-bottom: 15px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบแบบทดสอบออนไลน์</title>
+  
+  <!-- Chart.js สำหรับวาดกราฟสถิติ -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    * { box-sizing: border-box; font-family: 'Sarabun', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f1f5f9; margin: 0; padding: 20px; color: #1e293b; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    
+    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 20px; }
+    h1 { margin: 0; font-size: 24px; color: #0f172a; }
+
+    /* ปุ่ม */
+    .btn { padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-primary { background-color: #2563eb; color: white; }
+    .btn-primary:hover { background-color: #1d4ed8; }
+    .btn-stats { background-color: #4f46e5; color: white; }
+    .btn-stats:hover { background-color: #4338ca; }
+    
+    /* ฟอร์มและข้อสอบ */
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; font-weight: bold; }
+    input[type="text"], input[type="email"] { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 16px; }
+    
+    .question-card { background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+    .options-list { list-style: none; padding: 0; }
+    .options-list li { margin-bottom: 10px; }
+    .options-list label { display: flex; align-items: center; gap: 10px; font-weight: normal; cursor: pointer; padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; }
+    .options-list label:hover { background: #f1f5f9; }
+
+    /* Modal หน้าต่างสถิติ */
+    .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: white; width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto; padding: 25px; border-radius: 12px; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+    .close-btn { font-size: 24px; cursor: pointer; color: #64748b; }
+
+    /* Cards & Charts ใน Modal */
+    .search-box { display: flex; gap: 10px; margin: 20px 0; }
+    .stats-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .card { background: #f8fafc; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0; }
+    .card h4 { margin: 0; color: #64748b; font-size: 13px; }
+    .card p { margin: 5px 0 0 0; font-size: 18px; font-weight: bold; color: #0f172a; }
+
+    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px; }
+    .chart-card { background: white; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; }
+
+    .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .history-table th, .history-table td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; font-size: 14px; }
+    .history-table th { background: #f8fafc; }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <!-- หน้า 1: ล็อกอิน (ระบุชื่อ/อีเมล) -->
-    <div id="login-screen">
-        <h2>เข้าสู่ระบบทำข้อสอบ</h2>
-        <label>ชื่อ-นามสกุล:</label>
-        <input type="text" id="user-name" placeholder="กรอกชื่อของคุณ">
-        <label>อีเมล:</label>
-        <input type="email" id="user-email" placeholder="example@email.com">
-        <button class="btn" onclick="login()">เข้าสู่ระบบ</button>
+  <div class="container">
+    <header>
+      <h1>📝 แบบทดสอบความรู้ภาษีอากร</h1>
+      <button type="button" class="btn btn-stats" onclick="openStatsModal()">📊 ดูสถิติส่วนตัว</button>
+    </header>
+
+    <!-- ส่วนกรอกข้อมูลก่อนเริ่มทำข้อสอบ -->
+    <div id="userSection">
+      <div class="form-group">
+        <label for="userName">ชื่อ - นามสกุล หรือ อีเมลเพื่อสะสมสถิติ:</label>
+        <input type="text" id="userName" placeholder="กรอกชื่อ หรือ อีเมลของคุณ..." required>
+      </div>
+      <button class="btn btn-primary" onclick="startQuiz()">เริ่มทำข้อสอบ</button>
     </div>
 
-    <!-- หน้า 2: เลือกหมวดหมู่ / ดูสถิติ -->
-    <div id="main-screen" class="hidden">
-        <div class="user-bar">
-            <span id="display-user"></span>
-            <button onclick="logout()" style="padding: 4px 8px; cursor:pointer;">ออกจากระบบ</button>
+    <!-- ส่วนแสดงข้อสอบ -->
+    <div id="quizSection" style="display: none;">
+      <div id="questionsContainer"></div>
+      <button class="btn btn-primary" onclick="submitQuiz()">ส่งคำตอบ</button>
+    </div>
+
+    <!-- ส่วนแสดงผลการสอบสดๆ หลังทำเสร็จ -->
+    <div id="resultSection" style="display: none; text-align: center;">
+      <h2>🎉 ทำข้อสอบเสร็จสิ้น!</h2>
+      <h3 id="scoreText"></h3>
+      <button class="btn btn-primary" onclick="location.reload()">ทำข้อสอบอีกครั้ง</button>
+      <button class="btn btn-stats" onclick="openStatsModal()">ดูสถิติสะสมของคุณ</button>
+    </div>
+  </div>
+
+  <!-- หน้าต่างสถิติส่วนตัว (Modal) -->
+  <div id="statsModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="margin: 0;">📊 สถิติและประวัติการสอบส่วนตัว</h3>
+        <span class="close-btn" onclick="closeStatsModal()">&times;</span>
+      </div>
+
+      <div class="search-box">
+        <input type="text" id="statsUserSearch" placeholder="กรอกชื่อ หรือ อีเมล เพื่อค้นหาประวัติ...">
+        <button class="btn btn-primary" onclick="fetchUserStats()">ค้นหา</button>
+      </div>
+
+      <div id="statsLoading" style="display: none; text-align: center; padding: 20px;">⏳ กำลังโหลดข้อมูล...</div>
+
+      <div id="statsDisplay" style="display: none;">
+        <div class="stats-cards">
+          <div class="card"><h4>สอบทั้งหมด</h4><p id="statTotalTests">0 ครั้ง</p></div>
+          <div class="card"><h4>คะแนนเฉลี่ย</h4><p id="statAvgScore">0%</p></div>
+          <div class="card"><h4>ทำได้ดีที่สุด</h4><p id="statBestCategory">-</p></div>
         </div>
-        <h2>เลือกหมวดหมู่ข้อสอบ</h2>
-        <select id="category-select">
-            <option value="ความรู้ทั่วไป">ความรู้ทั่วไป</option>
-            <option value="ภาษาอังกฤษ">ภาษาอังกฤษ</option>
-            <option value="กฎหมายน่ารู้">กฎหมายน่ารู้</option>
-        </select>
-        <button class="btn" onclick="startQuiz()">เริ่มทำข้อสอบ</button>
-        <button class="btn btn-sec" onclick="loadHistory()">📊 ดูสถิติของฉัน</button>
+
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h4 style="margin-top:0;">📈 พัฒนาการคะแนน</h4>
+            <canvas id="progressChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <h4 style="margin-top:0;">🎯 คะแนนแยกตามหมวด</h4>
+            <canvas id="categoryChart"></canvas>
+          </div>
+        </div>
+
+        <h4>📜 ประวัติการทำข้อสอบย้อนหลัง</h4>
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>วันที่-เวลา</th>
+              <th>หมวดหมู่</th>
+              <th>คะแนน</th>
+              <th>ผลลัพธ์</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody"></tbody>
+        </table>
+      </div>
     </div>
+  </div>
 
-    <!-- หน้า 3: ทำข้อสอบ -->
-    <div id="quiz-screen" class="hidden">
-        <h3 id="quiz-title">ข้อสอบ</h3>
-        <p id="question-text" style="font-size: 18px; font-weight: bold;"></p>
-        <div id="options-container"></div>
-    </div>
+  <script>
+    // ⚠️ นำ Web App URL ที่ได้จากการ Deploy Apps Script มาวางตรงนี้
+    const GAS_WEB_APP_URL = "วาง_WEB_APP_URL_ของคุณที่นี่";
 
-    <!-- หน้า 4: สรุปผล -->
-    <div id="result-screen" class="hidden">
-        <h2>ผลการทดสอบ</h2>
-        <p id="score-text" style="font-size: 24px; text-align: center; color: var(--primary);"></p>
-        <p id="status-text" style="text-align: center; color: #64748b;"></p>
-        <button class="btn" onclick="showMainScreen()">กลับหน้าหลัก</button>
-    </div>
-
-    <!-- หน้า 5: สถิติ/กราฟ -->
-    <div id="stats-screen" class="hidden">
-        <h2>สถิติการสอบย้อนหลัง</h2>
-        <canvas id="statsChart" style="max-height: 300px;"></canvas>
-        <button class="btn btn-sec" onclick="showMainScreen()">ปิดหน้าสถิติ</button>
-    </div>
-</div>
-
-<script>
-    // 🔗 วาง Web App URL จาก Apps Script ที่นี่
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz5lRYr5_jAziCr8L1sgVtCuFn76ugyhgmrCGSFKTNfkKurCqDx_j8vdiXsh2R4Eeb0/exec";
-
-    // คลังข้อสอบตัวอย่าง
+    // ตัวอย่างชุดข้อสอบ (คุณสามารถปรับเปลี่ยนหรือดึงจาก Google Sheet เพิ่มเติมได้)
     const quizData = [
-        { q: "1 + 1 เท่ากับเท่าไร?", options: ["1", "2", "3", "4"], answer: 1 },
-        { q: "เมืองหลวงของประเทศไทยคือเมืองใด?", options: ["เชียงใหม่", "ชลบุรี", "กรุงเทพฯ", "ภูเก็ต"], answer: 2 },
-        { q: "HTML ย่อมาจากอะไร?", options: ["Hyper Text Markup Language", "High Text Marking Language", "Hyperlinks Textual Mark", "Home Tool Markup"], answer: 0 }
+      {
+        category: "ภาษีมูลค่าเพิ่ม (VAT)",
+        question: "1. อัตราภาษีมูลค่าเพิ่มปัจจุบัน (รวมภาษีท้องถิ่น) คือเท่าใด?",
+        options: ["5%", "7%", "10%", "15%"],
+        answer: 1
+      },
+      {
+        category: "ภาษีเงินได้นิติบุคคล",
+        question: "2. ยื่นแบบ ภ.ง.ด.50 ภายในกี่วันนับแต่วันสุดท้ายของรอบระยะเวลาบัญชี?",
+        options: ["60 วัน", "90 วัน", "120 วัน", "150 วัน"],
+        answer: 3
+      }
     ];
 
-    let currentUser = null;
-    let currentQuestionIndex = 0;
-    let score = 0;
-    let statsChartInstance = null;
+    let userResponses = {};
+    let progressChartInstance = null;
+    let categoryChartInstance = null;
 
-    // เช็กข้อมูลผู้ใช้เดิม
-    window.onload = () => {
-        const savedUser = localStorage.getItem("quiz_user");
-        if (savedUser) {
-            currentUser = JSON.parse(savedUser);
-            showMainScreen();
-        }
-    };
-
-    function login() {
-        const name = document.getElementById("user-name").value.trim();
-        const email = document.getElementById("user-email").value.trim();
-
-        if (!name || !email) {
-            alert("กรุณากรอกชื่อและอีเมลให้ครบถ้วน");
-            return;
-        }
-
-        currentUser = { name, email };
-        localStorage.setItem("quiz_user", JSON.stringify(currentUser));
-        showMainScreen();
-    }
-
-    function logout() {
-        localStorage.removeItem("quiz_user");
-        currentUser = null;
-        document.getElementById("login-screen").classList.remove("hidden");
-        document.getElementById("main-screen").classList.add("hidden");
-    }
-
-    function showMainScreen() {
-        hideAllScreens();
-        document.getElementById("main-screen").classList.remove("hidden");
-        document.getElementById("display-user").innerText = `👤 ${currentUser.name}`;
-    }
-
-    function hideAllScreens() {
-        ["login-screen", "main-screen", "quiz-screen", "result-screen", "stats-screen"].forEach(id => {
-            document.getElementById(id).classList.add("hidden");
-        });
-    }
-
+    // --- เริ่มทำข้อสอบ ---
     function startQuiz() {
-        hideAllScreens();
-        document.getElementById("quiz-screen").classList.remove("hidden");
-        currentQuestionIndex = 0;
-        score = 0;
-        loadQuestion();
-    }
+      const name = document.getElementById('userName').value.trim();
+      if (!name) { alert("กรุณากรอกชื่อหรืออีเมลก่อนเริ่มครับ"); return; }
 
-    function loadQuestion() {
-        const q = quizData[currentQuestionIndex];
-        document.getElementById("question-text").innerText = `ข้อ ${currentQuestionIndex + 1}: ${q.q}`;
-        const container = document.getElementById("options-container");
-        container.innerHTML = "";
+      document.getElementById('userSection').style.display = 'none';
+      document.getElementById('quizSection').style.display = 'block';
 
-        q.options.forEach((opt, idx) => {
-            const btn = document.createElement("button");
-            btn.className = "option-btn";
-            btn.innerText = opt;
-            btn.onclick = () => selectAnswer(idx);
-            container.appendChild(btn);
+      const container = document.getElementById('questionsContainer');
+      container.innerHTML = '';
+
+      quizData.forEach((q, index) => {
+        let optionsHtml = '';
+        q.options.forEach((opt, optIndex) => {
+          optionsHtml += `
+            <li>
+              <label>
+                <input type="radio" name="q${index}" value="${optIndex}" onchange="userResponses[${index}] = ${optIndex}">
+                ${opt}
+              </label>
+            </li>`;
         });
+
+        container.innerHTML += `
+          <div class="question-card">
+            <h3>${q.question}</h3>
+            <ul class="options-list">${optionsHtml}</ul>
+          </div>`;
+      });
     }
 
-    function selectAnswer(selectedIndex) {
-        if (selectedIndex === quizData[currentQuestionIndex].answer) {
-            score++;
-        }
+    // --- ส่งคำตอบและเซฟลง Google Sheets ---
+    async function submitQuiz() {
+      let score = 0;
+      quizData.forEach((q, index) => {
+        if (userResponses[index] === q.answer) score++;
+      });
 
-        currentQuestionIndex++;
-        if (currentQuestionIndex < quizData.length) {
-            loadQuestion();
+      const userName = document.getElementById('userName').value.trim();
+      const total = quizData.length;
+
+      document.getElementById('quizSection').style.display = 'none';
+      document.getElementById('resultSection').style.display = 'block';
+      document.getElementById('scoreText').innerText = `คุณทำได้ ${score} / ${total} คะแนน`;
+
+      // ส่งข้อมูลไปเก็บที่ Google Sheets ผ่าน Apps Script (doPost)
+      try {
+        await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: userName,
+            category: "แบบทดสอบรวม",
+            score: score,
+            total: total
+          })
+        });
+      } catch (e) { console.error("Save error:", e); }
+    }
+
+    // --- ระบบ Modal สถิติ ---
+    function openStatsModal() {
+      document.getElementById('statsModal').style.display = 'flex';
+      const currentUser = document.getElementById('userName').value.trim();
+      if (currentUser) {
+        document.getElementById('statsUserSearch').value = currentUser;
+        fetchUserStats();
+      }
+    }
+
+    function closeStatsModal() {
+      document.getElementById('statsModal').style.display = 'none';
+    }
+
+    // --- ดึงประวัติจาก Google Sheets (doGet) และวาดกราฟ ---
+    async function fetchUserStats() {
+      const searchTarget = document.getElementById('statsUserSearch').value.trim();
+      if (!searchTarget) { alert("กรุณากรอกชื่อหรืออีเมลเพื่อค้นหาครับ"); return; }
+
+      document.getElementById('statsLoading').style.display = 'block';
+      document.getElementById('statsDisplay').style.display = 'none';
+
+      try {
+        const response = await fetch(`${GAS_WEB_APP_URL}?email=${encodeURIComponent(searchTarget)}`);
+        const data = await response.json();
+
+        document.getElementById('statsLoading').style.display = 'none';
+
+        if (data.result === 'success' && data.history && data.history.length > 0) {
+          document.getElementById('statsDisplay').style.display = 'block';
+          renderChartsAndTable(data.history);
         } else {
-            finishQuiz();
+          alert("ไม่พบประวัติการสอบสำหรับชื่อ/อีเมลนี้ครับ");
         }
+      } catch (err) {
+        document.getElementById('statsLoading').style.display = 'none';
+        alert("ไม่สามารถดึงข้อมูลได้ ตรวจสอบว่าใส่ Web App URL ถูกต้องแล้วหรือยังครับ");
+      }
     }
 
-    function finishQuiz() {
-        hideAllScreens();
-        document.getElementById("result-screen").classList.remove("hidden");
-        document.getElementById("score-text").innerText = `ได้คะแนน ${score} / ${quizData.length}`;
-        document.getElementById("status-text").innerText = "กำลังบันทึกผลลง Google Sheets...";
+    function renderChartsAndTable(history) {
+      const totalTests = history.length;
+      let totalPercentSum = 0;
+      let catMap = {};
 
-        const category = document.getElementById("category-select").value;
+      history.forEach(item => {
+        const p = (item.score / item.total) * 100;
+        totalPercentSum += p;
+        if (!catMap[item.category]) catMap[item.category] = { sum: 0, count: 0 };
+        catMap[item.category].sum += p;
+        catMap[item.category].count += 1;
+      });
 
-        // ส่งข้อมูลไปบันทึกลง Google Sheet
-        fetch(GAS_WEB_APP_URL, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({
-                name: currentUser.name,
-                email: currentUser.email,
-                category: category,
-                score: score,
-                total: quizData.length
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById("status-text").innerText = "บันทึกผลคะแนนเรียบร้อยแล้ว!";
-        })
-        .catch(err => {
-            console.error(err);
-            document.getElementById("status-text").innerText = "บันทึกผลสำเร็จ (หรืออยู่นอกระบบเชื่อมต่อ)";
-        });
+      document.getElementById('statTotalTests').innerText = `${totalTests} ครั้ง`;
+      document.getElementById('statAvgScore').innerText = `${(totalPercentSum / totalTests).toFixed(1)}%`;
+
+      let bestCat = '-'; let maxAvg = -1;
+      for (let c in catMap) {
+        let avg = catMap[c].sum / catMap[c].count;
+        if (avg > maxAvg) { maxAvg = avg; bestCat = c; }
+      }
+      document.getElementById('statBestCategory').innerText = bestCat;
+
+      // ตารางประวัติ
+      const tbody = document.getElementById('historyTableBody');
+      tbody.innerHTML = '';
+      history.slice().reverse().forEach(item => {
+        const date = new Date(item.timestamp).toLocaleDateString('th-TH');
+        const p = Math.round((item.score / item.total) * 100);
+        tbody.innerHTML += `<tr>
+          <td>${date}</td>
+          <td>${item.category}</td>
+          <td>${item.score}/${item.total} (${p}%)</td>
+          <td>${p >= 60 ? '🟢 ผ่าน' : '🔴 ไม่ผ่าน'}</td>
+        </tr>`;
+      });
+
+      // กราฟ 1: พัฒนาการคะแนน (Line)
+      if (progressChartInstance) progressChartInstance.destroy();
+      progressChartInstance = new Chart(document.getElementById('progressChart'), {
+        type: 'line',
+        data: {
+          labels: history.map((_, i) => `ครั้งที่ ${i + 1}`),
+          datasets: [{ label: 'คะแนน (%)', data: history.map(h => Math.round((h.score / h.total) * 100)), borderColor: '#2563eb', fill: false }]
+        },
+        options: { scales: { y: { min: 0, max: 100 } } }
+      });
+
+      // กราฟ 2: คะแนนแยกตามหมวด (Bar)
+      if (categoryChartInstance) categoryChartInstance.destroy();
+      const cats = Object.keys(catMap);
+      categoryChartInstance = new Chart(document.getElementById('categoryChart'), {
+        type: 'bar',
+        data: {
+          labels: cats,
+          datasets: [{ label: 'คะแนนเฉลี่ย (%)', data: cats.map(c => Math.round(catMap[c].sum / catMap[c].count)), backgroundColor: '#10b981' }]
+        },
+        options: { scales: { y: { min: 0, max: 100 } } }
+      });
     }
-
-    function loadHistory() {
-        hideAllScreens();
-        document.getElementById("stats-screen").classList.remove("hidden");
-
-        // ดึงสถิติตาม Email ของผู้ใช้ปัจจุบัน
-        fetch(`${GAS_WEB_APP_URL}?email=${encodeURIComponent(currentUser.email)}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === "success" && data.history) {
-                renderChart(data.history);
-            }
-        })
-        .catch(err => console.error(err));
-    }
-
-    function renderChart(historyData) {
-        const ctx = document.getElementById('statsChart').getContext('2d');
-        
-        const labels = historyData.map((item, idx) => `ครั้งที่ ${idx + 1} (${item.category})`);
-        const scores = historyData.map(item => item.score);
-
-        if (statsChartInstance) {
-            statsChartInstance.destroy();
-        }
-
-        statsChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'คะแนนที่ได้',
-                    data: scores,
-                    borderColor: '#4f46e5',
-                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                    fill: true,
-                    tension: 0.3
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: { beginAtZero: true, max: 3 }
-                }
-            }
-        });
-    }
-</script>
-
+  </script>
 </body>
 </html>
