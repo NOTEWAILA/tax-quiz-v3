@@ -746,7 +746,7 @@
 
   <script>
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSbkDPY9eFM_vtttQ9Yd2VP5cs2GeSJyfhuzfn6qYgRv5tAEjGOpIIZgRLj5qk0CyRB_GTo22l65PQE/pub?gid=0&single=true&output=csv";
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxZuJywPNQci-oQGmV4j1CDZQqwcc-HBHVjqmQJeha6x-i_qj7LFRgAtaDGzmEEXoVe/exec";
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz5lRYr5_jAziCr8L1sgVtCuFn76ugyhgmrCGSFKTNfkKurCqDx_j8vdiXsh2R4Eeb0/exec";
 
     let currentUser = { name: "", email: "", picture: "" };
     let allData = [];
@@ -1288,26 +1288,13 @@
     }
 
     function sendScoreToGoogleSheet(category, score, total) {
-  if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.includes("ใส่_URL")) return;
-  
-  // แยกส่งชื่อและอีเมลให้ Apps Script จัดรูปแบบเข้าคอลัมน์ User Name & Email
-  const payload = {
-    userName: currentUser.name || "ไม่ทราบชื่อ",
-    email: currentUser.email || "",
-    category: category,
-    score: score,
-    total: total
-  };
-
-  fetch(GAS_WEB_APP_URL, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  })
-  .then(() => { console.log("บันทึกคะแนนลง Google Sheet สำเร็จ!"); })
-  .catch(err => { console.error("เกิดข้อผิดพลาดในการส่งข้อมูล:", err); });
-}
+      if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.includes("ใส่_URL")) return;
+      
+      const payload = {
+        name: `${currentUser.name} (${currentUser.email})`,
+        category: category,
+        score: score,
+        total: total
       };
 
       fetch(GAS_WEB_APP_URL, {
