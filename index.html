@@ -1335,7 +1335,10 @@
       document.getElementById('statsDisplay').style.display = 'none';
 
       try {
-        const res = await fetch(`${GAS_WEB_APP_URL}?email=${encodeURIComponent(currentUser.email)}`);
+        const res = await fetch(`${GAS_WEB_APP_URL}?email=${encodeURIComponent(currentUser.email)}`, {
+  method: 'GET',
+  redirect: 'follow'
+});
         const data = await res.json();
         document.getElementById('statsLoading').style.display = 'none';
 
