@@ -1336,9 +1336,9 @@
 
       try {
         const res = await fetch(`${GAS_WEB_APP_URL}?email=${encodeURIComponent(currentUser.email)}`, {
-  method: 'GET',
-  redirect: 'follow'
-});
+          method: 'GET',
+          redirect: 'follow'
+        });
         const data = await res.json();
         document.getElementById('statsLoading').style.display = 'none';
 
@@ -1350,6 +1350,7 @@
           document.getElementById('statsLoading').style.display = 'block';
         }
       } catch (err) {
+        console.error(err);
         document.getElementById('statsLoading').innerText = "❌ ไม่สามารถดึงข้อมูลสถิติได้";
         document.getElementById('statsLoading').style.display = 'block';
       }
