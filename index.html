@@ -131,6 +131,30 @@
       background: rgba(239, 68, 68, 0.3);
     }
 
+    /* Resume Box UI */
+    .resume-card {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+    }
+    .resume-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #a7f3d0;
+      margin-bottom: 4px;
+    }
+    .resume-detail {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .resume-actions {
+      display: flex;
+      gap: 8px;
+    }
+
     .menu-header-bar {
       display: flex;
       align-items: center;
@@ -515,7 +539,7 @@
     <div id="login-area" class="menu-view" style="text-align: center;">
       <div style="font-size: 50px; margin-bottom: 15px;">📝</div>
       <h2 class="menu-title" style="margin-bottom: 10px;">คลังข้อสอบกฎหมายภาษี</h2>
-      <p class="menu-subtitle" style="margin-bottom: 24px;">เข้าสู่ระบบด้วย Google เพื่อบันทึกประวัติการทำข้อสอบ</p>
+      <p class="menu-subtitle" style="margin-bottom: 24px;">เข้าสู่ระบบด้วย Google เพื่อบันทึกประวัติและสะสมคะแนน</p>
       
       <!-- ปุ่ม Google Sign-In -->
       <div style="display: flex; justify-content: center; width: 100%;">
@@ -553,6 +577,19 @@
           </div>
         </div>
         <button class="btn-logout" onclick="logout()">ออกจากระบบ</button>
+      </div>
+
+      <!-- Resume Progress Box -->
+      <div id="resume-box" class="resume-card" style="display: none;">
+        <div class="resume-title">📌 คุณมีข้อสอบทำค้างไว้</div>
+        <div class="resume-detail">
+          หมวด: <span id="resume-cat-text" style="color: #fff; font-weight:600;">-</span><br>
+          ทำถึงข้อที่: <span id="resume-progress-text" style="color: #fff; font-weight:600;">0/0</span> (คะแนนปัจจุบัน: <span id="resume-score-text" style="color: #10b981; font-weight:600;">0</span>)
+        </div>
+        <div class="resume-actions">
+          <button class="btn" style="background: #10b981; color: white; flex: 1; padding: 8px 12px; font-size: 12.5px;" onclick="resumeQuiz()">▶ ทำต่อจากเดิม</button>
+          <button class="btn" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; font-size: 12.5px;" onclick="clearSavedProgress()">เริ่มใหม่</button>
+        </div>
       </div>
 
       <div class="menu-header-bar">
@@ -665,7 +702,73 @@
     let timerInterval = null;
     let audioCtx = null;
 
-    // Decode JWT Token จาก Google
+    function getStorageKey() {
+      return `quiz_progress_${currentUser.email}`;
+    }
+
+    function saveProgress() {
+      if (!currentUser.email) return;
+      const progressData = {
+        categoryName: currentCategoryName,
+        selectedCategory: selectedCategory,
+        currentIndex: currentIndex,
+        totalScore: totalScore,
+        currentStreak: currentStreak,
+        maxStreak: maxStreak,
+        answeredQuestions: answeredQuestions,
+        filteredData: filteredData,
+        lastUpdated: new Date().getTime()
+      };
+      localStorage.setItem(getStorageKey(), JSON.stringify(progressData));
+    }
+
+    function checkSavedProgress() {
+      if (!currentUser.email) return;
+      const saved = localStorage.getItem(getStorageKey());
+      const resumeBox = document.getElementById('resume-box');
+      
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          document.getElementById('resume-cat-text').innerText = data.categoryName;
+          document.getElementById('resume-progress-text').innerText = `${data.currentIndex + 1}/${data.filteredData.length}`;
+          document.getElementById('resume-score-text').innerText = data.totalScore;
+          resumeBox.style.display = 'block';
+        } catch(e) {
+          resumeBox.style.display = 'none';
+        }
+      } else {
+        resumeBox.style.display = 'none';
+      }
+    }
+
+    function resumeQuiz() {
+      const saved = localStorage.getItem(getStorageKey());
+      if (!saved) return;
+      
+      initAudio();
+      const data = JSON.parse(saved);
+      currentCategoryName = data.categoryName;
+      selectedCategory = data.selectedCategory;
+      currentIndex = data.currentIndex;
+      totalScore = data.totalScore;
+      currentStreak = data.currentStreak;
+      maxStreak = data.maxStreak;
+      answeredQuestions = data.answeredQuestions;
+      filteredData = data.filteredData;
+
+      document.getElementById('menu-area').style.display = 'none';
+      document.getElementById('quiz-area').style.display = 'block';
+      showQuestion();
+    }
+
+    function clearSavedProgress() {
+      if (currentUser.email) {
+        localStorage.removeItem(getStorageKey());
+      }
+      document.getElementById('resume-box').style.display = 'none';
+    }
+
     function parseJwt (token) {
       var base64Url = token.split('.')[1];
       var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -675,7 +778,6 @@
       return JSON.parse(jsonPayload);
     }
 
-    // ตรวจสอบสถานะการล็อกอินเมื่อโหลดหน้าเว็บ
     window.onload = function() {
       document.body.addEventListener('click', initAudio, { once: true });
       
@@ -697,14 +799,12 @@
       loadDataFromSheet();
     }
 
-    // Callback พอล็อกอิน Google สำเร็จ
     function handleCredentialResponse(response) {
       const responsePayload = parseJwt(response.credential);
       currentUser.name = responsePayload.name;
       currentUser.email = responsePayload.email;
       currentUser.picture = responsePayload.picture;
 
-      // บันทึกลง LocalStorage
       localStorage.setItem('tax_quiz_user', JSON.stringify(currentUser));
       showLoggedInUser();
     }
@@ -853,6 +953,8 @@
     }
 
     function renderCategoryMenu() {
+      checkSavedProgress();
+      
       const container = document.getElementById('dynamic-menu-list');
       container.innerHTML = '';
       
@@ -923,6 +1025,8 @@
 
     function startQuiz(category, subSet = "ทั้งหมด") {
       initAudio();
+      clearSavedProgress(); 
+      
       currentCategoryName = (subSet !== "ทั้งหมด" && subSet !== "ชุดหลัก") ? `${category} (${subSet})` : category;
       isShuffleMode = document.getElementById('shuffle-toggle-input').checked;
       
@@ -1072,6 +1176,8 @@
         document.getElementById('explanation-text').innerText = explanation;
         document.getElementById('explanation-box').style.display = 'block';
       }
+
+      saveProgress();
     }
 
     function updateStreakUI() {
@@ -1099,6 +1205,8 @@
 
     function showScoreSummary() {
       clearInterval(timerInterval);
+      clearSavedProgress(); 
+
       document.getElementById('quiz-area').style.display = 'none';
       document.getElementById('summary-area').style.display = 'block';
       playSound('tada');
