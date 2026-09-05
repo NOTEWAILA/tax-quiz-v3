@@ -70,7 +70,7 @@
     .user-profile-bar {
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: space-between;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--card-border);
       padding: 10px 14px;
@@ -78,11 +78,19 @@
       margin-bottom: 16px;
     }
 
+    .user-profile-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: hidden;
+    }
+
     .user-avatar {
       width: 36px;
       height: 36px;
       border-radius: 50%;
       border: 1px solid var(--theme-color);
+      flex-shrink: 0;
     }
 
     .user-info {
@@ -106,6 +114,21 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .btn-logout {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-logout:hover {
+      background: rgba(239, 68, 68, 0.3);
     }
 
     .menu-header-bar {
@@ -492,14 +515,14 @@
     <div id="login-area" class="menu-view" style="text-align: center;">
       <div style="font-size: 50px; margin-bottom: 15px;">📝</div>
       <h2 class="menu-title" style="margin-bottom: 10px;">คลังข้อสอบกฎหมายภาษี</h2>
-      <p class="menu-subtitle" style="margin-bottom: 24px;">เข้าสู่ระบบ</p>
+      <p class="menu-subtitle" style="margin-bottom: 24px;">เข้าสู่ระบบด้วย Google เพื่อบันทึกประวัติการทำข้อสอบ</p>
       
       <!-- ปุ่ม Google Sign-In -->
       <div style="display: flex; justify-content: center; width: 100%;">
         <div id="g_id_onload"
              data-client_id="361753809442-viiq59949d15amvi4ra3han4l67dab5o.apps.googleusercontent.com"
              data-callback="handleCredentialResponse"
-             data-auto_prompt="false">
+             data-auto_select="true">
         </div>
         <div class="g_id_signin"
              data-type="standard"
@@ -522,11 +545,14 @@
       
       <!-- User Profile Header -->
       <div class="user-profile-bar">
-        <img id="user-avatar-img" class="user-avatar" src="" alt="Profile">
-        <div class="user-info">
-          <span class="user-name" id="user-name-text">กำลังโหลด...</span>
-          <span class="user-email" id="user-email-text">...</span>
+        <div class="user-profile-left">
+          <img id="user-avatar-img" class="user-avatar" src="" alt="Profile">
+          <div class="user-info">
+            <span class="user-name" id="user-name-text">กำลังโหลด...</span>
+            <span class="user-email" id="user-email-text">...</span>
+          </div>
         </div>
+        <button class="btn-logout" onclick="logout()">ออกจากระบบ</button>
       </div>
 
       <div class="menu-header-bar">
@@ -649,13 +675,18 @@
       return JSON.parse(jsonPayload);
     }
 
-    // Callback พอล็อกอิน Google สำเร็จ
-    function handleCredentialResponse(response) {
-      const responsePayload = parseJwt(response.credential);
-      currentUser.name = responsePayload.name;
-      currentUser.email = responsePayload.email;
-      currentUser.picture = responsePayload.picture;
+    // ตรวจสอบสถานะการล็อกอินเมื่อโหลดหน้าเว็บ
+    window.onload = function() {
+      document.body.addEventListener('click', initAudio, { once: true });
+      
+      const savedUser = localStorage.getItem('tax_quiz_user');
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        showLoggedInUser();
+      }
+    };
 
+    function showLoggedInUser() {
       document.getElementById('user-name-text').innerText = currentUser.name;
       document.getElementById('user-email-text').innerText = currentUser.email;
       document.getElementById('user-avatar-img').src = currentUser.picture;
@@ -664,6 +695,26 @@
       document.getElementById('loading-area').style.display = 'block';
       
       loadDataFromSheet();
+    }
+
+    // Callback พอล็อกอิน Google สำเร็จ
+    function handleCredentialResponse(response) {
+      const responsePayload = parseJwt(response.credential);
+      currentUser.name = responsePayload.name;
+      currentUser.email = responsePayload.email;
+      currentUser.picture = responsePayload.picture;
+
+      // บันทึกลง LocalStorage
+      localStorage.setItem('tax_quiz_user', JSON.stringify(currentUser));
+      showLoggedInUser();
+    }
+
+    function logout() {
+      localStorage.removeItem('tax_quiz_user');
+      if (window.google && google.accounts && google.accounts.id) {
+        google.accounts.id.disableAutoSelect();
+      }
+      location.reload();
     }
 
     function initAudio() { if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } }
@@ -702,10 +753,6 @@
         }
       } catch (e) { console.log(e); }
     }
-
-    window.onload = function() {
-      document.body.addEventListener('click', initAudio, { once: true });
-    };
 
     function setLimit(value, btnElement) {
       maxQuestionsLimit = value;
